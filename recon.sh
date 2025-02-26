@@ -32,27 +32,46 @@ install_tools() {
 # Subdomain Enumeration
 enumerate_subdomains() {
     local domain=$1
+    if [ -f subdomains.txt ]; then
+        echo "[+] subdomains.txt already exists, skipping enumeration."
+        return
+    fi
     echo "[+] Enumerating subdomains for the domain: $domain..."
     subfinder -d $domain -o subdomains.txt
     amass enum -passive -d $domain >> subdomains.txt
     sort -u subdomains.txt -o subdomains.txt
 }
 
+
 # Subdomain Takeover Check
 check_takeover() {
+    if [ -f takeover_results.txt ]; then
+        echo "[+] takeover_results.txt already exists, skipping takeover check."
+        return
+    fi
     echo "[+] Checking for potential subdomain takeovers..."
     subjack -w subdomains.txt -o takeover_results.txt -ssl -v
 }
 
+
 # Port Scanning
 scan_ports() {
+    if [ -f open_ports.txt ] && [ -f nmap_results.txt ]; then
+        echo "[+] open_ports.txt and nmap_results.txt already exist, skipping port scanning."
+        return
+    fi
     echo "[+] Scanning open ports on live subdomains..."
     naabu -list subdomains.txt -o open_ports.txt
     nmap -iL open_ports.txt -Pn -A -oN nmap_results.txt
 }
 
+
 # Security Headers Analysis
 check_security_headers() {
+    if [ ! -f subdomains.txt ]; then
+        echo "[+] subdomains.txt does not exist, skipping security headers analysis."
+        return
+    fi
     echo "[+] Analyzing security headers..."
     for url in $(cat subdomains.txt); do
         echo "Checking $url"
@@ -60,8 +79,13 @@ check_security_headers() {
     done
 }
 
+
 # DNS and WHOIS Lookup
 perform_dns_whois() {
+    if [ ! -f subdomains.txt ]; then
+        echo "[+] subdomains.txt does not exist, skipping DNS and WHOIS lookups."
+        return
+    fi
     echo "[+] Executing DNS and WHOIS lookups..."
     while read subdomain; do
         echo "[+] DNS Records for $subdomain"
@@ -71,11 +95,17 @@ perform_dns_whois() {
     done < subdomains.txt
 }
 
+
 # Screenshot Capture
 capture_screenshots() {
+    if [ ! -d screenshots/ ]; then
+        echo "[+] screenshots/ directory does not exist, skipping screenshot capture."
+        return
+    fi
     echo "[+] Capturing screenshots for live subdomains..."
     cat subdomains.txt | httprobe | gowitness scan --threads 5 --output screenshots/
 }
+
 
 # Main Execution
 main() {
